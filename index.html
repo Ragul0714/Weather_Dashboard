@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather & Astronomy Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --secondary: #10b981;
+            --accent: #8b5cf6;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --gradient-start: #4f46e5;
+            --gradient-end: #7c3aed;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            transition: all 0.5s ease;
+            color: #e2e8f0;
+        }
+        
+        .glass-card {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(12px) saturate(180%);
+            -webkit-backdrop-filter: blur(12px) saturate(180%);
+            border-radius: 1.5rem;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), 
+                        0 4px 20px rgba(123, 97, 255, 0.15),
+                        inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-style: preserve-3d;
+            perspective: 1000px;
+        }
+        
+        .glass-card:hover {
+            transform: translateY(-8px) scale(1.01);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 
+                        0 8px 30px rgba(123, 97, 255, 0.25),
+                        inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+        }
+        
+        .input-field {
+            border: 2px solid rgba(99, 102, 241, 0.3);
+            border-radius: 0.75rem;
+            padding: 0.75rem 1.25rem;
+            transition: all 0.3s ease;
+            background: rgba(15, 23, 42, 0.6);
+            color: #e2e8f0;
+            font-size: 1.05rem;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .input-field:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.3);
+            background: rgba(15, 23, 42, 0.8);
+            outline: none;
+        }
+        
+        .search-button {
+            background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+            color: white;
+            border-radius: 0.75rem;
+            padding: 0.75rem 1.75rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 12px -2px rgba(79, 70, 229, 0.4), 
+                        0 4px 8px -2px rgba(0, 0, 0, 0.2);
+            border: none;
+            position: relative;
+            overflow: hidden;
+            transform: translateZ(0);
+            perspective: 1000px;
+        }
+        
+        .search-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%);
+            transform: translateX(-100%);
+            transition: transform 0.6s ease;
+        }
+        
+        .search-button:hover {
+            transform: translateY(-4px) scale(1.03);
+            box-shadow: 0 12px 20px -4px rgba(79, 70, 229, 0.5), 
+                        0 8px 12px -4px rgba(0, 0, 0, 0.25);
+        }
+        
+        .search-button:hover::before {
+            transform: translateX(100%);
+        }
+        
+        .search-button:active {
+            transform: translateY(1px);
+        }
+        
+        .loading-spinner {
+            border: 4px solid rgba(59, 130, 246, 0.1);
+            border-left-color: var(--primary);
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            border-radius: 0.75rem;
+            padding: 0.75rem 1.25rem;
+            animation: shake 0.5s;
+            backdrop-filter: blur(4px);
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        
+        .weather-icon-lg {
+            width: 90px;
+            height: 90px;
+            filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.3));
+            transition: transform 0.3s ease;
+        }
+        
+        .weather-icon-lg:hover {
+            transform: scale(1.1) rotate(5deg);
+        }
+        
+        .temp-display {
+            font-size: 3.75rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #e0e7ff 0%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            line-height: 1;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .forecast-card {
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 1.25rem;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            backdrop-filter: blur(8px);
+        }
+        
+        .forecast-card:hover {
+            background: rgba(30, 41, 59, 0.7);
+            transform: translateY(-8px) rotateX(5deg);
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.25), 
+                        0 5px 15px rgba(123, 97, 255, 0.2);
+            border-color: rgba(99, 102, 241, 0.4);
+        }
+        
+        .astro-icon {
+            font-size: 1.75rem;
+            background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 0.5rem;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        }
+        
+        .moon-phase {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #c7d2fe, #4c1d95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            box-shadow: inset 2px 2px 10px rgba(0, 0, 0, 0.4),
+                        0 0 20px rgba(139, 92, 246, 0.4);
+            transition: all 0.5s ease;
+            transform-style: preserve-3d;
+        }
+        
+        .moon-phase:hover {
+            transform: scale(1.1) rotateY(10deg);
+            box-shadow: inset 3px 3px 15px rgba(0, 0, 0, 0.5),
+                        0 0 30px rgba(139, 92, 246, 0.6);
+        }
+        
+        .uv-index {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 700;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .uv-low { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .uv-moderate { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+        .uv-high { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+        .uv-very-high { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+        .uv-extreme { background: linear-gradient(135deg, #db2777 0%, #be185d 100%); }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        
+        .section-divider {
+            height: 2px;
+            background: linear-gradient(90deg, transparent 0%, rgba(99, 102, 241, 0.5) 50%, transparent 100%);
+            margin: 1.75rem 0;
+            box-shadow: 0 1px 2px rgba(99, 102, 241, 0.2);
+        }
+        
+        .wind-direction {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(99, 102, 241, 0.2);
+            margin-left: 0.5rem;
+            font-size: 0.85rem;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+        }
+        
+        .data-card {
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(99, 102, 241, 0.15);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .data-card:hover {
+            background: rgba(15, 23, 42, 0.6);
+            transform: translateY(-3px);
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.15),
+                        0 5px 15px rgba(99, 102, 241, 0.1);
+        }
+        
+        .header-glow {
+            text-shadow: 0 0 10px rgba(123, 97, 255, 0.7),
+                         0 0 20px rgba(123, 97, 255, 0.5),
+                         0 0 30px rgba(123, 97, 255, 0.3);
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(123, 97, 255, 0.7); }
+            70% { box-shadow: 0 0 0 12px rgba(123, 97, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(123, 97, 255, 0); }
+        }
+        
+        .floating {
+            animation: floating 6s ease-in-out infinite;
+        }
+        
+        @keyframes floating {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #a5b4fc 0%, #c7d2fe 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: 700;
+        }
+        
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        .star {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            animation: twinkle var(--duration) infinite ease-in-out;
+        }
+        
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 1; }
+        }
+        
+        .temp-gauge {
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(30, 41, 59, 0.7);
+            overflow: hidden;
+            position: relative;
+            margin-top: 8px;
+        }
+        
+        .temp-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #ef4444);
+            border-radius: 4px;
+            transition: width 1s ease;
+        }
+        
+        .sun-movement {
+            height: 120px;
+            position: relative;
+            margin-top: 1rem;
+            background: linear-gradient(to top, #0f172a, #1e293b);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+        
+        .sun-path {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: rgba(251, 191, 36, 0.3);
+        }
+        
+        .sun-icon {
+            position: absolute;
+            top: 50%;
+            left: 0%;
+            transform: translate(-50%, -50%);
+            color: #fbbf24;
+            font-size: 24px;
+            filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.8));
+            transition: left 1s ease;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-6">
+    <!-- Animated stars background -->
+    <div class="stars" id="stars"></div>
+    
+    <div class="container mx-auto max-w-6xl">
+        <div class="glass-card p-6 md:p-8 animate__animated animate__fadeIn">
+            <h1 class="text-4xl md:text-5xl font-bold text-center mb-6 header-glow">
+                <i class="fas fa-cloud-sun text-blue-400 mr-3 floating"></i>
+                <span class="gradient-text">Weather & Astronomy Dashboard</span>
+            </h1>
+
+            <div class="flex flex-col sm:flex-row gap-4 mb-8">
+                <input type="text" id="cityInput" placeholder="Enter city name (e.g., London, Tokyo)"
+                       class="input-field flex-grow text-gray-200 text-lg h-14 px-4">
+                <button id="searchButton" class="search-button flex-shrink-0 h-14 text-lg">
+                    <i class="fas fa-search mr-2"></i> Search
+                </button>
+            </div>
+
+            <div id="loadingIndicator" class="hidden flex items-center justify-center py-6">
+                <div class="loading-spinner mr-3"></div>
+                <span class="text-gray-300 text-lg">Loading weather data...</span>
+            </div>
+            
+            <div id="errorMessage" class="hidden error-message text-center text-lg py-3 mb-6 text-red-100"></div>
+
+            <div id="weatherContent" class="hidden animate-fade-in">
+                <!-- Current Weather Section -->
+                <div class="glass-card p-6 mb-8">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
+                        <h2 class="section-title text-2xl md:text-3xl font-bold text-gray-100">
+                            Current Weather in <span id="currentCityName" class="text-blue-300"></span>
+                        </h2>
+                        <div id="currentDateTime" class="text-gray-400 text-lg"></div>
+                    </div>
+                    
+                    <div class="section-divider"></div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="flex items-center col-span-1 md:col-span-2 lg:col-span-1">
+                            <img id="currentWeatherIcon" src="" alt="Weather Icon" class="weather-icon-lg mr-4 floating">
+                            <div>
+                                <p class="temp-display" id="currentTemp">--°C</p>
+                                <p class="text-xl font-medium text-gray-300" id="currentCondition">--</p>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4 text-lg">
+                            <div class="data-card">
+                                <p class="text-gray-400 mb-1">Feels Like</p>
+                                <p class="font-semibold text-gray-100" id="currentFeelsLike">--°C</p>
+                            </div>
+                            <div class="data-card">
+                                <p class="text-gray-400 mb-1">Humidity</p>
+                                <p class="font-semibold text-gray-100" id="currentHumidity">--%</p>
+                            </div>
+                            <div class="data-card">
+                                <p class="text-gray-400 mb-1">Wind</p>
+                                <p class="font-semibold text-gray-100" id="currentWind">-- km/h</p>
+                            </div>
+                            <div class="data-card">
+                                <p class="text-gray-400 mb-1">UV Index</p>
+                                <p class="font-semibold" id="currentUv">--</p>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4 text-lg">
+                            <div class="data-card">
+                                <p class="text-gray-400 mb-1">Pressure</p>
+                                <p class="font-semibold text-gray-100" id="currentPressure">-- hPa</p>
+                            </div>
+                            <div class="data-card">
+                                <p class="text-gray-400 mb-1">Visibility</p>
+                                <p class="font-semibold text-gray-100" id="currentVisibility">-- km</p>
+                            </div>
+                            <div class="data-card">
+                                <p class="text-gray-400 mb-1">Precipitation</p>
+                                <p class="font-semibold text-gray-100" id="currentPrecip">-- mm</p>
+                            </div>
+                            <div class="data-card">
+                                <p class="text-gray-400 mb-1">Cloud Cover</p>
+                                <p class="font-semibold text-gray-100" id="currentCloud">--%</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Forecast Section -->
+                <div class="glass-card p-6 mb-8">
+                    <h2 class="section-title text-2xl md:text-3xl font-bold text-gray-100 mb-6">3-Day Forecast</h2>
+                    <div class="section-divider"></div>
+                    <div id="forecastContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                </div>
+
+                <!-- Astronomy Section -->
+                <div class="glass-card p-6">
+                    <h2 class="section-title text-2xl md:text-3xl font-bold text-gray-100 mb-6">Astronomy Data</h2>
+                    <div class="section-divider"></div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="data-card">
+                            <div class="flex items-center mb-4">
+                                <i class="fas fa-sun astro-icon text-yellow-400 mr-3"></i>
+                                <h3 class="text-xl font-bold text-gray-100">Sun Data</h3>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p class="text-gray-400">Sunrise</p>
+                                    <p class="font-semibold text-lg text-gray-100" id="astronomySunrise">--:-- AM</p>
+                                </div>
+                                <div>
+                                    <p class="text-gray-400">Sunset</p>
+                                    <p class="font-semibold text-lg text-gray-100" id="astronomySunset">--:-- PM</p>
+                                </div>
+                                <div class="col-span-2">
+                                    <p class="text-gray-400">Daylight Duration</p>
+                                    <p class="font-semibold text-lg text-gray-100" id="astronomyDaylight">-- hours -- minutes</p>
+                                </div>
+                            </div>
+                            <div class="sun-movement mt-4">
+                                <div class="sun-path"></div>
+                                <div class="sun-icon" id="sunPosition">
+                                    <i class="fas fa-sun"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="data-card">
+                            <div class="flex items-center mb-4">
+                                <i class="fas fa-moon astro-icon text-indigo-300 mr-3"></i>
+                                <h3 class="text-xl font-bold text-gray-100">Moon Data</h3>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p class="text-gray-400">Moonrise</p>
+                                    <p class="font-semibold text-lg text-gray-100" id="astronomyMoonrise">--:-- AM</p>
+                                </div>
+                                <div>
+                                    <p class="text-gray-400">Moonset</p>
+                                    <p class="font-semibold text-lg text-gray-100" id="astronomyMoonset">--:-- PM</p>
+                                </div>
+                                <div>
+                                    <p class="text-gray-400">Phase</p>
+                                    <p class="font-semibold text-lg text-gray-100" id="astronomyMoonPhase">--</p>
+                                </div>
+                                <div>
+                                    <p class="text-gray-400">Illumination</p>
+                                    <p class="font-semibold text-lg text-gray-100" id="astronomyMoonIllumination">--%</p>
+                                </div>
+                            </div>
+                            <div class="mt-4 flex justify-center">
+                                <div class="moon-phase pulse" id="moonPhaseVisual">
+                                    <i class="fas fa-moon text-white text-3xl"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // IMPORTANT: Replace 'YOUR_API_KEY' with your actual API key from WeatherAPI.com
+        const API_KEY = '9185e0a85a04493faaa63316250407'; // Ensure this is your actual API key
+        const BASE_URL = 'https://api.weatherapi.com/v1';
+
+        // Get DOM elements
+        const cityInput = document.getElementById('cityInput');
+        const searchButton = document.getElementById('searchButton');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const errorMessage = document.getElementById('errorMessage');
+        const weatherContent = document.getElementById('weatherContent');
+        const starsContainer = document.getElementById('stars');
+        const sunPosition = document.getElementById('sunPosition');
+
+        // Create stars background
+        function createStars() {
+            const starsCount = 150;
+            for (let i = 0; i < starsCount; i++) {
+                const star = document.createElement('div');
+                star.classList.add('star');
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.width = `${Math.random() * 3}px`;
+                star.style.height = star.style.width;
+                star.style.opacity = Math.random() * 0.8 + 0.2;
+                star.style.setProperty('--duration', `${Math.random() * 3 + 2}s`);
+                starsContainer.appendChild(star);
+            }
+        }
+
+        // Current Weather Elements
+        const currentCityName = document.getElementById('currentCityName');
+        const currentDateTime = document.getElementById('currentDateTime');
+        const currentWeatherIcon = document.getElementById('currentWeatherIcon');
+        const currentTemp = document.getElementById('currentTemp');
+        const currentCondition = document.getElementById('currentCondition');
+        const currentFeelsLike = document.getElementById('currentFeelsLike');
+        const currentHumidity = document.getElementById('currentHumidity');
+        const currentWind = document.getElementById('currentWind');
+        const currentUv = document.getElementById('currentUv');
+        const currentPressure = document.getElementById('currentPressure');
+        const currentVisibility = document.getElementById('currentVisibility');
+        const currentPrecip = document.getElementById('currentPrecip');
+        const currentCloud = document.getElementById('currentCloud');
+
+        // Forecast Elements
+        const forecastContainer = document.getElementById('forecastContainer');
+
+        // Astronomy Elements
+        const astronomySunrise = document.getElementById('astronomySunrise');
+        const astronomySunset = document.getElementById('astronomySunset');
+        const astronomyMoonrise = document.getElementById('astronomyMoonrise');
+        const astronomyMoonset = document.getElementById('astronomyMoonset');
+        const astronomyMoonPhase = document.getElementById('astronomyMoonPhase');
+        const astronomyMoonIllumination = document.getElementById('astronomyMoonIllumination');
+        const astronomyDaylight = document.getElementById('astronomyDaylight');
+        const moonPhaseVisual = document.getElementById('moonPhaseVisual');
+
+        /**
+         * Displays an error message and hides other content.
+         * @param {string} message - The error message to display.
+         */
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.remove('hidden');
+            loadingIndicator.classList.add('hidden');
+            weatherContent.classList.add('hidden');
+        }
+
+        /**
+         * Clears any existing error messages.
+         */
+        function clearError() {
+            errorMessage.classList.add('hidden');
+            errorMessage.textContent = '';
+        }
+
+        /**
+         * Formats time from 24-hour to 12-hour format
+         * @param {string} timeStr - Time string in format "HH:MM"
+         * @returns {string} Formatted time (e.g., "7:30 AM")
+         */
+        function formatTime(timeStr) {
+            const [hours, minutes] = timeStr.split(':');
+            const hourNum = parseInt(hours, 10);
+            const ampm = hourNum >= 12 ? 'PM' : 'AM';
+            const hour12 = hourNum % 12 || 12;
+            return `${hour12}:${minutes} ${ampm}`;
+        }
+
+        /**
+         * Calculates daylight duration between sunrise and sunset
+         * @param {string} sunrise - Sunrise time (e.g., "6:45 AM")
+         * @param {string} sunset - Sunset time (e.g., "6:30 PM")
+         * @returns {string} Formatted duration (e.g., "11 hours 45 minutes")
+         */
+        function calculateDaylight(sunrise, sunset) {
+            // Convert times to Date objects (using arbitrary date)
+            const sunriseDate = new Date(`2000-01-01 ${sunrise}`);
+            const sunsetDate = new Date(`2000-01-01 ${sunset}`);
+            
+            // Calculate difference in milliseconds
+            const diffMs = sunsetDate - sunriseDate;
+            
+            // Convert to hours and minutes
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            
+            return `${diffHours} hours ${diffMinutes} minutes`;
+        }
+
+        /**
+         * Updates moon phase visual based on phase name
+         * @param {string} phase - Moon phase name
+         */
+        function updateMoonPhaseVisual(phase) {
+            const moonPhases = {
+                'New Moon': 'far fa-circle',
+                'Waxing Crescent': 'fas fa-moon waxing-crescent',
+                'First Quarter': 'fas fa-moon first-quarter',
+                'Waxing Gibbous': 'fas fa-moon waxing-gibbous',
+                'Full Moon': 'fas fa-moon',
+                'Waning Gibbous': 'fas fa-moon waning-gibbous',
+                'Last Quarter': 'fas fa-moon last-quarter',
+                'Waning Crescent': 'fas fa-moon waning-crescent'
+            };
+            
+            const iconClass = moonPhases[phase] || 'fas fa-moon';
+            moonPhaseVisual.innerHTML = `<i class="${iconClass} text-white text-3xl"></i>`;
+        }
+
+        /**
+         * Determines UV index severity and returns appropriate styling
+         * @param {number} uv - UV index value
+         * @returns {string} CSS class for UV index display
+         */
+        function getUvSeverity(uv) {
+            if (uv <= 2) return 'uv-low';
+            if (uv <= 5) return 'uv-moderate';
+            if (uv <= 7) return 'uv-high';
+            if (uv <= 10) return 'uv-very-high';
+            return 'uv-extreme';
+        }
+
+        /**
+         * Updates the sun position visualization
+         * @param {string} sunrise - Sunrise time (e.g., "6:45 AM")
+         * @param {string} sunset - Sunset time (e.g., "6:30 PM")
+         */
+        function updateSunPosition(sunrise, sunset) {
+            // Get current time
+            const now = new Date();
+            const currentHours = now.getHours();
+            const currentMinutes = now.getMinutes();
+            const currentTime = currentHours + currentMinutes / 60;
+            
+            // Convert sunrise and sunset to decimal hours
+            const sunriseTime = parseTimeToDecimal(sunrise);
+            const sunsetTime = parseTimeToDecimal(sunset);
+            
+            // Calculate sun position (0 = sunrise, 100 = sunset)
+            let sunPercent = 0;
+            if (currentTime < sunriseTime) {
+                sunPercent = 0;
+            } else if (currentTime > sunsetTime) {
+                sunPercent = 100;
+            } else {
+                sunPercent = ((currentTime - sunriseTime) / (sunsetTime - sunriseTime)) * 100;
+            }
+            
+            // Update sun position (with 10% padding on each side)
+            sunPosition.style.left = `calc(10% + ${sunPercent * 0.8}%)`;
+        }
+
+        /**
+         * Converts time string to decimal hours
+         * @param {string} timeStr - Time string (e.g., "6:45 AM")
+         * @returns {number} Decimal hours (e.g., 6.75)
+         */
+        function parseTimeToDecimal(timeStr) {
+            const [time, period] = timeStr.split(' ');
+            const [hours, minutes] = time.split(':');
+            
+            let hourNum = parseInt(hours, 10);
+            if (period === 'PM' && hourNum < 12) hourNum += 12;
+            if (period === 'AM' && hourNum === 12) hourNum = 0;
+            
+            return hourNum + parseInt(minutes, 10) / 60;
+        }
+
+        /**
+         * Fetches weather, forecast, and astronomy data for a given city.
+         * @param {string} city - The name of the city.
+         */
+        async function fetchWeatherData(city) {
+            clearError();
+            loadingIndicator.classList.remove('hidden');
+            weatherContent.classList.add('hidden'); // Hide previous content
+
+            try {
+                // Construct the API URL for current, forecast (3 days), and astronomy data
+                const response = await fetch(`${BASE_URL}/forecast.json?key=${API_KEY}&q=${city}&days=3&aqi=no&alerts=no`);
+
+                if (!response.ok) {
+                    // Handle HTTP errors (e.g., 400 Bad Request, 404 Not Found)
+                    const errorData = await response.json();
+                    if (errorData.error && errorData.error.message) {
+                        throw new Error(errorData.error.message);
+                    } else {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                }
+
+                const data = await response.json();
+                console.log("API Response:", data); // Log the full response for debugging
+
+                // Check if location data exists
+                if (!data.location) {
+                    throw new Error("Location data not found in API response.");
+                }
+
+                displayWeatherData(data);
+
+            } catch (error) {
+                console.error("Error fetching weather data:", error);
+                showError(`Failed to fetch weather data: ${error.message}. Please check the city name and try again.`);
+            } finally {
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        /**
+         * Displays the fetched weather, forecast, and astronomy data on the dashboard.
+         * @param {object} data - The weather data object from the API.
+         */
+        function displayWeatherData(data) {
+            // Update current date and time
+            const now = new Date(data.location.localtime);
+            currentDateTime.textContent = now.toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            // Display Current Weather
+            currentCityName.textContent = `${data.location.name}, ${data.location.country}`;
+            currentWeatherIcon.src = data.current.condition.icon;
+            currentWeatherIcon.alt = data.current.condition.text;
+            currentTemp.textContent = `${data.current.temp_c}°C`;
+            currentCondition.textContent = data.current.condition.text;
+            currentFeelsLike.textContent = `${data.current.feelslike_c}°C`;
+            currentHumidity.textContent = `${data.current.humidity}%`;
+            currentWind.textContent = `${data.current.wind_kph} km/h ${data.current.wind_dir}`;
+            
+            // UV Index with severity styling
+            const uvIndex = data.current.uv;
+            const uvClass = getUvSeverity(uvIndex);
+            currentUv.innerHTML = `<span class="uv-index ${uvClass}">${uvIndex}</span>`;
+            
+            // Additional weather details
+            currentPressure.textContent = `${data.current.pressure_mb} hPa`;
+            currentVisibility.textContent = `${data.current.vis_km} km`;
+            currentPrecip.textContent = `${data.current.precip_mm} mm`;
+            currentCloud.textContent = `${data.current.cloud}%`;
+
+            // Display Forecast
+            forecastContainer.innerHTML = ''; // Clear previous forecast
+            data.forecast.forecastday.forEach(day => {
+                const date = new Date(day.date);
+                const forecastCard = document.createElement('div');
+                forecastCard.classList.add('forecast-card', 'animate__animated', 'animate__fadeIn');
+                forecastCard.innerHTML = `
+                    <div class="flex flex-col items-center text-center">
+                        <p class="font-bold text-xl mb-2 text-gray-100">
+                            ${date.toLocaleDateString('en-US', { weekday: 'long' })}
+                        </p>
+                        <p class="text-gray-400 mb-3">
+                            ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </p>
+                        <img src="${day.day.condition.icon}" alt="${day.day.condition.text}" 
+                             class="w-20 h-20 mb-3 filter drop-shadow-md floating">
+                        <p class="text-2xl font-bold text-gray-100 mb-1">
+                            ${day.day.maxtemp_c}° <span class="text-gray-400">/ ${day.day.mintemp_c}°</span>
+                        </p>
+                        <p class="text-gray-300 mb-2">${day.day.condition.text}</p>
+                        <div class="flex justify-center gap-4 mt-2">
+                            <div class="flex items-center text-sm text-gray-300">
+                                <i class="fas fa-tint text-blue-300 mr-1"></i>
+                                <span>${day.day.daily_chance_of_rain}%</span>
+                            </div>
+                            <div class="flex items-center text-sm text-gray-300">
+                                <i class="fas fa-wind text-gray-300 mr-1"></i>
+                                <span>${day.day.maxwind_kph} km/h</span>
+                            </div>
+                        </div>
+                        <div class="w-full mt-4">
+                            <div class="temp-gauge">
+                                <div class="temp-fill" style="width: ${(day.day.maxtemp_c / 40) * 100}%"></div>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-400 mt-1">
+                                <span>${day.day.mintemp_c}°</span>
+                                <span>${day.day.maxtemp_c}°</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                forecastContainer.appendChild(forecastCard);
+            });
+
+            // Display Astronomy Data (from the first day of forecast, which is today)
+            const astronomy = data.forecast.forecastday[0].astro;
+            const sunriseTime = formatTime(astronomy.sunrise);
+            const sunsetTime = formatTime(astronomy.sunset);
+            const moonriseTime = formatTime(astronomy.moonrise);
+            const moonsetTime = formatTime(astronomy.moonset);
+            
+            astronomySunrise.textContent = sunriseTime;
+            astronomySunset.textContent = sunsetTime;
+            astronomyMoonrise.textContent = moonriseTime;
+            astronomyMoonset.textContent = moonsetTime;
+            astronomyMoonPhase.textContent = astronomy.moon_phase;
+            astronomyMoonIllumination.textContent = `${astronomy.moon_illumination}%`;
+            astronomyDaylight.textContent = calculateDaylight(sunriseTime, sunsetTime);
+            
+            // Update moon phase visual
+            updateMoonPhaseVisual(astronomy.moon_phase);
+            
+            // Update sun position visualization
+            updateSunPosition(sunriseTime, sunsetTime);
+
+            // Show the content with animation
+            weatherContent.classList.remove('hidden');
+            weatherContent.classList.add('animate__animated', 'animate__fadeIn');
+        }
+
+        // Event Listeners
+        searchButton.addEventListener('click', () => {
+            const city = cityInput.value.trim();
+            if (city) {
+                fetchWeatherData(city);
+            } else {
+                showError("Please enter a city name.");
+            }
+        });
+
+        cityInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                searchButton.click(); // Simulate a click on the search button
+            }
+        });
+
+        // Create star background
+        createStars();
+
+        // Optional: Fetch weather for a default city on page load
+        window.onload = () => {
+            // You can set a default city here, e.g., 'London'
+            cityInput.value = 'New York'; // Example: Load weather for New York on page load
+            setTimeout(() => {
+                searchButton.click();
+            }, 500);
+        };
+    </script>
+</body>
+</html>
